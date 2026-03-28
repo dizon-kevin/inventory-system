@@ -326,6 +326,7 @@
             .search-input { width: 160px; }
             .search-input:focus { width: 180px; }
         }
+        @include('admin-notifications-styles')
     </style>
 </head>
 <body>
@@ -388,6 +389,8 @@
                         <span style="position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:#00a878;color:#fff;font-size:.55rem;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid var(--light);font-family:'Space Mono',monospace;">{{ $cartCount }}</span>
                     @endif
                 </a>
+
+                @include('admin-notifications-dropdown')
 
                 <div class="user-menu" id="userMenu">
                     <button class="user-trigger" onclick="toggleDropdown()">
@@ -595,5 +598,6 @@
     }
 </script>
 
+@include('admin-notifications-script')
 </body>
 </html>

@@ -19,36 +19,41 @@ class NotificationSeeder extends Seeder
         if ($admin) {
             Notification::create([
                 'user_id' => $admin->id,
-                'type' => 'product',
-                'data' => ['message' => 'New product "Laptop" added to inventory'],
+                'type' => 'product_added',
+                'title' => 'Product added',
+                'description' => 'New product "Laptop" added to inventory',
                 'read_at' => null,
             ]);
 
             Notification::create([
                 'user_id' => $admin->id,
-                'type' => 'order',
-                'data' => ['message' => 'New order received - Order #ORD-001 from John Doe'],
+                'type' => 'new_order',
+                'title' => 'New order received',
+                'description' => 'New order received - Order #ORD-001 from John Doe',
                 'read_at' => null,
             ]);
 
             Notification::create([
                 'user_id' => $admin->id,
-                'type' => 'stock',
-                'data' => ['message' => 'Low stock alert - Product "Keyboard" has only 5 units left'],
+                'type' => 'low_stock',
+                'title' => 'Stock alert',
+                'description' => 'Low stock alert - Product "Keyboard" has only 5 units left',
                 'read_at' => null,
             ]);
 
             Notification::create([
                 'user_id' => $admin->id,
-                'type' => 'order',
-                'data' => ['message' => 'Order #ORD-002 has been shipped'],
+                'type' => 'order_completed',
+                'title' => 'Order completed',
+                'description' => 'Order #ORD-002 has been shipped',
                 'read_at' => null,
             ]);
 
             Notification::create([
                 'user_id' => $admin->id,
-                'type' => 'product',
-                'data' => ['message' => 'Product "Mouse" price has been updated'],
+                'type' => 'product_updated',
+                'title' => 'Product updated',
+                'description' => 'Product "Mouse" price has been updated',
                 'read_at' => now()->subHours(2),
             ]);
         }

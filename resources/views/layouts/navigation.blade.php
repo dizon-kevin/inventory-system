@@ -246,9 +246,12 @@
                                     <!-- Notification content -->
                                     <div class="flex-1">
                                         <p class="text-sm {{ is_null($notification->read_at) ? 'font-bold text-gray-900' : 'font-medium text-gray-700' }}">
-                                            {{ $notification->data['message'] ?? 'Notification' }}
+                                            {{ $notification->title ?? 'Notification' }}
                                         </p>
                                         <p class="text-xs text-gray-500 mt-1">
+                                            {{ $notification->description ?? 'You have a new notification.' }}
+                                        </p>
+                                        <p class="text-xs text-gray-400 mt-1">
                                             {{ $notification->created_at->diffForHumans() }}
                                         </p>
                                     </div>
@@ -270,7 +273,7 @@
             <div class="bg-gray-50 px-4 py-3 sm:px-6 border-t border-gray-200">
                 <div class="flex gap-3 justify-between">
                     @if($notifications->count() > 0)
-                        <form action="{{ route('user.notifications.read') }}" method="POST">
+                        <form action="{{ route('notifications.mark-all-read') }}" method="POST">
                             @csrf
                             <button type="submit" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-600 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                                 Mark all as read

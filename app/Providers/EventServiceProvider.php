@@ -20,12 +20,6 @@ class EventServiceProvider extends ServiceProvider
         ProductUpdated::class => [
             SendNotification::class,
         ],
-        \App\Events\OrderPlaced::class => [
-            SendNotification::class,
-        ],
-        \App\Events\OrderStatusUpdated::class => [
-            SendNotification::class,
-        ],
     ];
 
     /**

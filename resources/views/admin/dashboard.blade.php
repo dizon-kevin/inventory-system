@@ -797,6 +797,7 @@
                 display: none;
             }
         }
+        @include('admin-notifications-styles')
     </style>
 </head>
 <body>
@@ -921,14 +922,7 @@
                 </a>
 
                 {{-- Notification bell --}}
-                <button class="topbar-icon-btn" aria-label="Notifications">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
-                    </svg>
-                    @if(isset($pendingOrders) && $pendingOrders > 0)
-                        <span class="notif-dot"></span>
-                    @endif
-                </button>
+                @include('admin-notifications-dropdown')
 
                 {{-- User dropdown --}}
                 <div class="user-menu" id="userMenu">
@@ -1200,5 +1194,6 @@
     }
 </script>
 
+@include('admin-notifications-script')
 </body>
 </html>

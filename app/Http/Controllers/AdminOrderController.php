@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\OrderStatusUpdated;
 use App\Models\Order;
 use Illuminate\Http\Request;
+use App\Services\NotificationService;
 
 class AdminOrderController extends Controller
 {
+    public function __construct(protected NotificationService $notificationService)
+    {
+    }
+
     public function index()
     {
         $orders = Order::with('user')->latest()->paginate(15);
@@ -41,7 +45,7 @@ class AdminOrderController extends Controller
         }
         $order->save();
 
-        event(new OrderStatusUpdated($order));
+        $this->notificationService->notifyUser($order, $data['status']);
 
         return back()->with('success', 'Order status updated.');
     }

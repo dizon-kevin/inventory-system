@@ -2,8 +2,6 @@
 
 namespace App\Listeners;
 
-use App\Events\OrderPlaced;
-use App\Events\OrderStatusUpdated;
 use App\Events\ProductAdded;
 use App\Events\ProductLowStock;
 use App\Events\ProductUpdated;
@@ -34,10 +32,8 @@ class SendNotification implements ShouldQueue
                 $notification = Notification::create([
                     'user_id' => $user->id,
                     'type' => 'low_stock',
-                    'data' => [
-                        'message' => "Product {$event->product->name} is low on stock (Quantity: {$event->product->quantity})",
-                        'product_id' => $event->product->id,
-                    ],
+                    'title' => 'Stock alert',
+                    'description' => "Product {$event->product->name} is low on stock (Quantity: {$event->product->quantity})",
                 ]);
                 // Broadcast notification to user
                 NotificationCreated::dispatch($notification);
@@ -51,10 +47,8 @@ class SendNotification implements ShouldQueue
                 $notification = Notification::create([
                     'user_id' => $user->id,
                     'type' => 'product_added',
-                    'data' => [
-                        'message' => "New product {$event->product->name} has been added.",
-                        'product_id' => $event->product->id,
-                    ],
+                    'title' => 'Product added',
+                    'description' => "New product {$event->product->name} has been added.",
                 ]);
                 // Broadcast notification to user
                 NotificationCreated::dispatch($notification);
@@ -68,47 +62,13 @@ class SendNotification implements ShouldQueue
                 $notification = Notification::create([
                     'user_id' => $user->id,
                     'type' => 'product_updated',
-                    'data' => [
-                        'message' => "Product {$event->product->name} has been updated.",
-                        'product_id' => $event->product->id,
-                    ],
+                    'title' => 'Product updated',
+                    'description' => "Product {$event->product->name} has been updated.",
                 ]);
                 // Broadcast notification to user
                 NotificationCreated::dispatch($notification);
             }
             return;
-        }
-
-        if ($event instanceof OrderPlaced) {
-            $admins = User::where('role', 'admin')->get();
-            foreach ($admins as $admin) {
-                $notification = Notification::create([
-                    'user_id' => $admin->id,
-                    'type' => 'order_placed',
-                    'data' => [
-                        'message' => "Order #{$event->order->id} placed by {$event->order->user->name}.",
-                        'order_id' => $event->order->id,
-                    ],
-                ]);
-                // Broadcast notification to admin
-                NotificationCreated::dispatch($notification);
-            }
-            return;
-        }
-
-        if ($event instanceof OrderStatusUpdated) {
-            $orderUser = $event->order->user;
-            $notification = Notification::create([
-                'user_id' => $orderUser->id,
-                'type' => 'order_status_updated',
-                'data' => [
-                    'message' => "Your order #{$event->order->id} has been {$event->order->status}.",
-                    'order_id' => $event->order->id,
-                    'status' => $event->order->status,
-                ],
-            ]);
-            // Broadcast notification to user
-            NotificationCreated::dispatch($notification);
         }
     }
 }

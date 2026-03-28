@@ -6,6 +6,7 @@ use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminOrderController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\UserDashboardController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CartController;
@@ -33,6 +34,7 @@ Route::middleware(['auth'])->group(function () {
     // Admin routes
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/notifications', [NotificationController::class, 'adminIndex'])->name('notifications.index');
 
         Route::resource('categories', CategoryController::class);
         Route::resource('products', ProductController::class);
@@ -59,9 +61,10 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
         Route::get('/orders/{order}/track', [OrderController::class, 'track'])->name('orders.track');
 
-        Route::get('/notifications', [UserDashboardController::class, 'notifications'])->name('notifications.index');
-        Route::post('/notifications/read', [UserDashboardController::class, 'markNotificationsRead'])->name('notifications.read');
+        Route::get('/notifications', [NotificationController::class, 'userIndex'])->name('notifications.index');
     });
+
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.mark-all-read');
 
     // Admin order routes
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {

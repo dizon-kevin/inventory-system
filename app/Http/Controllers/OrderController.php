@@ -2,16 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\OrderPlaced;
-use App\Events\OrderStatusUpdated;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\Product;
 use Illuminate\Http\Request;
+use App\Services\NotificationService;
 
 class OrderController extends Controller
 {
+    public function __construct(protected NotificationService $notificationService)
+    {
+    }
+
     public function index()
     {
         $orders = Order::where('user_id', auth()->id())->with('items.product')->latest()->paginate(10);
@@ -69,7 +71,7 @@ class OrderController extends Controller
 
         Cart::where('user_id', auth()->id())->delete();
 
-        event(new OrderPlaced($order));
+        $this->notificationService->notifyAdmins($order);
 
         return redirect()->route('user.orders.index')->with('success', 'Order placed successfully.');
     }
@@ -98,7 +100,7 @@ class OrderController extends Controller
             $item->product->increment('quantity', $item->quantity);
         }
 
-        event(new OrderStatusUpdated($order));
+        $this->notificationService->notifyUser($order, 'rejected');
 
         return back()->with('success', 'Order cancelled successfully.');
     }

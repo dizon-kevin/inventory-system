@@ -71,7 +71,8 @@ class ProductController extends Controller
             \App\Models\Notification::create([
                 'user_id' => $admin->id,
                 'type' => 'product_added',
-                'data' => ['message' => 'New product added: ' . $product->name, 'product_id' => $product->id],
+                'title' => 'Product added',
+                'description' => 'New product added: ' . $product->name,
             ]);
         }
 
@@ -137,13 +138,15 @@ class ProductController extends Controller
             \App\Models\Notification::create([
                 'user_id' => $admin->id,
                 'type' => 'product_updated',
-                'data' => ['message' => 'Product updated: ' . $product->name, 'product_id' => $product->id],
+                'title' => 'Product updated',
+                'description' => 'Product updated: ' . $product->name,
             ]);
             if ($product->quantity < 10) {
                 \App\Models\Notification::create([
                     'user_id' => $admin->id,
                     'type' => 'product_low_stock',
-                    'data' => ['message' => 'Product low stock: ' . $product->name, 'product_id' => $product->id],
+                    'title' => 'Stock alert',
+                    'description' => 'Product low stock: ' . $product->name,
                 ]);
             }
         }

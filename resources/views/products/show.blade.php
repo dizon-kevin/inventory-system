@@ -250,6 +250,7 @@
             .stats-row { grid-template-columns: 1fr 1fr; }
             .user-name, .user-role-badge { display: none; }
         }
+        @include('admin-notifications-styles')
     </style>
 </head>
 <body>
@@ -321,9 +322,7 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     Edit Product
                 </a>
-                <button class="topbar-icon-btn" aria-label="Notifications">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
-                </button>
+                @include('admin-notifications-dropdown')
                 <div class="user-menu" id="userMenu">
                     <button class="user-trigger" onclick="toggleDropdown()">
                         <div class="user-avatar">{{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 2)) }}</div>
@@ -547,5 +546,6 @@
     }
 </script>
 
+@include('admin-notifications-script')
 </body>
 </html>
