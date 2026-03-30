@@ -5,11 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use App\Services\NotificationService;
+use App\Services\TrackerService;
 
 class AdminOrderController extends Controller
 {
-    public function __construct(protected NotificationService $notificationService)
-    {
+    public function __construct(
+        protected NotificationService $notificationService,
+        protected TrackerService $trackerService
+    ) {
     }
 
     public function index()
@@ -46,6 +49,7 @@ class AdminOrderController extends Controller
         $order->save();
 
         $this->notificationService->notifyUser($order, $data['status']);
+        $this->trackerService->sendOrderStatus($order);
 
         return back()->with('success', 'Order status updated.');
     }

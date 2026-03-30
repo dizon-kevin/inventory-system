@@ -7,11 +7,14 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use Illuminate\Http\Request;
 use App\Services\NotificationService;
+use App\Services\TrackerService;
 
 class OrderController extends Controller
 {
-    public function __construct(protected NotificationService $notificationService)
-    {
+    public function __construct(
+        protected NotificationService $notificationService,
+        protected TrackerService $trackerService
+    ) {
     }
 
     public function index()
@@ -72,6 +75,7 @@ class OrderController extends Controller
         Cart::where('user_id', auth()->id())->delete();
 
         $this->notificationService->notifyAdmins($order);
+        $this->trackerService->sendOrderCreated($order);
 
         return redirect()->route('user.orders.index')->with('success', 'Order placed successfully.');
     }
@@ -101,6 +105,7 @@ class OrderController extends Controller
         }
 
         $this->notificationService->notifyUser($order, 'rejected');
+        $this->trackerService->sendOrderStatus($order);
 
         return back()->with('success', 'Order cancelled successfully.');
     }

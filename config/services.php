@@ -35,4 +35,21 @@ return [
         ],
     ],
 
+    'tracker' => [
+        'url' => env('TRACKER_URL'),
+        'token' => env('TRACKER_API_TOKEN'),
+    ],
+
+    'xendit' => [
+        'key' => env('XENDIT_API_KEY'),
+    ],
+
+    'prgc' => [
+        'key' => env('PRGC_API_KEY'),
+    ],
+
+    'storix' => [
+        'key' => env('STORIX_API_TOKEN'),
+    ],
+
 ];
