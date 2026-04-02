@@ -6,14 +6,17 @@ use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderItem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Services\NotificationService;
 use App\Services\TrackerService;
+use App\Services\XenditService;
 
 class OrderController extends Controller
 {
     public function __construct(
         protected NotificationService $notificationService,
-        protected TrackerService $trackerService
+        protected TrackerService $trackerService,
+        protected XenditService $xenditService
     ) {
     }
 
@@ -34,11 +37,41 @@ class OrderController extends Controller
 
         $total = $cartItems->sum(fn ($item) => $item->quantity * $item->product->price);
 
-        return view('user.orders.create', compact('cartItems', 'total'));
+        return view('user.orders.create', [
+            'cartItems' => $cartItems,
+            'total' => $total,
+            'paymentMethods' => config('checkout.payment_methods'),
+            'xenditConfigured' => $this->xenditService->isConfigured(),
+        ]);
     }
 
     public function store(Request $request)
     {
+        $validated = $request->validate([
+            'payment_method' => ['required', 'string', 'in:' . implode(',', array_keys(config('checkout.payment_methods')))],
+            'pickup_address.region_code' => ['required', 'string', 'max:20'],
+            'pickup_address.region_name' => ['required', 'string', 'max:255'],
+            'pickup_address.province_code' => ['nullable', 'string', 'max:20'],
+            'pickup_address.province_name' => ['nullable', 'string', 'max:255'],
+            'pickup_address.city_code' => ['required', 'string', 'max:20'],
+            'pickup_address.city_name' => ['required', 'string', 'max:255'],
+            'pickup_address.barangay_code' => ['required', 'string', 'max:20'],
+            'pickup_address.barangay_name' => ['required', 'string', 'max:255'],
+            'pickup_address.street_address' => ['required', 'string', 'max:255'],
+            'pickup_address.contact_number' => ['required', 'string', 'max:30'],
+            'delivery_address.region_code' => ['required', 'string', 'max:20'],
+            'delivery_address.region_name' => ['required', 'string', 'max:255'],
+            'delivery_address.province_code' => ['nullable', 'string', 'max:20'],
+            'delivery_address.province_name' => ['nullable', 'string', 'max:255'],
+            'delivery_address.city_code' => ['required', 'string', 'max:20'],
+            'delivery_address.city_name' => ['required', 'string', 'max:255'],
+            'delivery_address.barangay_code' => ['required', 'string', 'max:20'],
+            'delivery_address.barangay_name' => ['required', 'string', 'max:255'],
+            'delivery_address.street_address' => ['required', 'string', 'max:255'],
+            'delivery_address.contact_number' => ['required', 'string', 'max:30'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
         $cartItems = Cart::with('product')->where('user_id', auth()->id())->get();
 
         if ($cartItems->isEmpty()) {
@@ -53,31 +86,88 @@ class OrderController extends Controller
 
         $total = $cartItems->sum(fn ($item) => $item->quantity * $item->product->price);
 
-        $order = Order::create([
-            'user_id' => auth()->id(),
-            'total_price' => $total,
-            'status' => 'pending',
-            'placed_at' => now(),
-        ]);
+        $selectedMethod = $validated['payment_method'];
 
-        foreach ($cartItems as $item) {
-            OrderItem::create([
-                'order_id' => $order->id,
-                'product_id' => $item->product_id,
-                'quantity' => $item->quantity,
-                'unit_price' => $item->product->price,
-                'total_price' => $item->quantity * $item->product->price,
+        $xenditConfigured = $this->xenditService->isConfigured();
+
+        $order = DB::transaction(function () use ($validated, $cartItems, $total, $selectedMethod, $xenditConfigured) {
+            $order = Order::create([
+                'user_id' => auth()->id(),
+                'total_price' => $total,
+                'status' => 'pending',
+                'payment_method' => $selectedMethod,
+                'payment_status' => 'pending',
+                'payment_amount' => $total,
+                'notes' => $validated['notes'] ?? null,
+                'pickup_address' => $validated['pickup_address'],
+                'delivery_address' => $validated['delivery_address'],
+                'placed_at' => now(),
             ]);
 
-            $item->product->decrement('quantity', $item->quantity);
-        }
+            foreach ($cartItems as $item) {
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'product_id' => $item->product_id,
+                    'quantity' => $item->quantity,
+                    'unit_price' => $item->product->price,
+                    'total_price' => $item->quantity * $item->product->price,
+                ]);
 
-        Cart::where('user_id', auth()->id())->delete();
+                $item->product->decrement('quantity', $item->quantity);
+            }
+
+            $order->xendit_reference_id = "storix-order-{$order->id}";
+            $order->xendit_invoice_id = $this->buildFallbackInvoiceId($order);
+
+            if ($xenditConfigured) {
+                $invoiceResponse = $this->xenditService->createInvoice(
+                    $this->buildInvoicePayload($order->fresh('user'), $selectedMethod, $total)
+                );
+
+                if ($invoiceResponse->successful()) {
+                    $invoice = $invoiceResponse->json();
+
+                    $order->fill([
+                        'xendit_invoice_id' => $invoice['id'] ?? $order->xendit_invoice_id,
+                        'xendit_invoice_url' => $invoice['invoice_url'] ?? null,
+                        'xendit_payment_method' => $invoice['payment_method'] ?? $selectedMethod,
+                        'xendit_reference_id' => $invoice['external_id'] ?? "storix-order-{$order->id}",
+                        'payment_expires_at' => isset($invoice['expiry_date']) ? $invoice['expiry_date'] : null,
+                    ]);
+                } else {
+                    $order->notes = trim(implode(' ', array_filter([
+                        $order->notes,
+                        'Xendit payment session is not available yet. Order was saved without hosted payment.',
+                    ])));
+                }
+            } else {
+                $order->xendit_payment_method = $selectedMethod;
+                $order->notes = trim(implode(' ', array_filter([
+                    $order->notes,
+                    'Xendit API key is not configured yet. Order was saved in pending payment mode.',
+                ])));
+            }
+
+            $order->save();
+
+            Cart::where('user_id', auth()->id())->delete();
+
+            return $order->fresh(['user', 'items.product']);
+        });
 
         $this->notificationService->notifyAdmins($order);
         $this->trackerService->sendOrderCreated($order);
 
-        return redirect()->route('user.orders.index')->with('success', 'Order placed successfully.');
+        if ($order->xendit_invoice_url) {
+            return redirect()->away($order->xendit_invoice_url);
+        }
+
+        return redirect()->route('user.orders.show', $order)->with(
+            'success',
+            $xenditConfigured
+                ? 'Order placed successfully.'
+                : 'Order placed successfully. Xendit is not configured yet, so the order is saved with pending payment.'
+        );
     }
 
     public function show(Order $order)
@@ -98,6 +188,7 @@ class OrderController extends Controller
         }
 
         $order->status = 'rejected';
+        $order->payment_status = $order->payment_status === 'paid' ? 'paid' : 'failed';
         $order->save();
 
         foreach ($order->items as $item) {
@@ -115,5 +206,42 @@ class OrderController extends Controller
         abort_unless($order->user_id === auth()->id(), 403);
 
         return view('user.orders.track', compact('order'));
+    }
+
+    protected function buildInvoicePayload(Order $order, string $paymentMethod, float $total): array
+    {
+        $availablePaymentMethods = config("checkout.payment_method_map.{$paymentMethod}", []);
+
+        return array_filter([
+            'external_id' => "storix-order-{$order->id}",
+            'amount' => $total,
+            'description' => "Storix Order #{$order->id}",
+            'currency' => 'PHP',
+            'payer_email' => $order->user?->email,
+            'should_send_email' => true,
+            'invoice_duration' => 86400,
+            'customer' => [
+                'given_names' => $order->user?->name ?? 'Storix Customer',
+                'email' => $order->user?->email,
+                'mobile_number' => $order->delivery_address['contact_number'] ?? null,
+            ],
+            'customer_notification_preference' => [
+                'invoice_created' => ['email'],
+                'invoice_paid' => ['email'],
+                'invoice_expired' => ['email'],
+            ],
+            'available_payment_methods' => $availablePaymentMethods,
+            'metadata' => [
+                'storix_order_id' => $order->id,
+                'payment_method_selection' => $paymentMethod,
+                'pickup_city' => $order->pickup_address['city_name'] ?? null,
+                'delivery_city' => $order->delivery_address['city_name'] ?? null,
+            ],
+        ], fn ($value) => $value !== null);
+    }
+
+    protected function buildFallbackInvoiceId(Order $order): string
+    {
+        return sprintf('STORIX-XENDIT-%06d', $order->id);
     }
 }

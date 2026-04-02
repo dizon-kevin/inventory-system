@@ -18,7 +18,21 @@ class TrackerService
             'storix_user_id' => $order->user_id,
             'status' => $this->normalizeStatus($order->status),
             'total_price' => $order->total_price,
+            'payment_method' => $order->payment_method,
+            'payment_status' => $order->payment_status,
+            'payment_amount' => $order->payment_amount,
+            'xendit_invoice_id' => $order->xendit_invoice_id,
+            'xendit_invoice_url' => $order->xendit_invoice_url,
+            'xendit_payment_method' => $order->xendit_payment_method,
+            'xendit_reference_id' => $order->xendit_reference_id,
+            'prgc_ref' => $this->buildPrgcRef($order),
+            'pickup_address' => $order->pickup_address,
+            'delivery_address' => $order->delivery_address,
             'placed_at' => $order->placed_at?->toIsoString(),
+            'payment_paid_at' => $order->payment_paid_at?->toIsoString(),
+            'payment_expires_at' => $order->payment_expires_at?->toIsoString(),
+            'approved_at' => $order->approved_at?->toIsoString(),
+            'completed_at' => $order->completed_at?->toIsoString(),
             'items' => $order->items->map(fn ($item) => [
                 'product_id' => $item->product_id,
                 'sku' => $item->product?->id,
@@ -34,11 +48,30 @@ class TrackerService
 
     public function sendOrderStatus(Order $order): bool
     {
-        return $this->postToTracker("/orders/{$order->id}/status", [
+        $synced = $this->postToTracker("/orders/{$order->id}/status", [
             'status' => $this->normalizeStatus($order->status),
+            'payment_method' => $order->payment_method,
+            'payment_status' => $order->payment_status,
+            'payment_amount' => $order->payment_amount,
             'approved_at' => $order->approved_at?->toIsoString(),
             'completed_at' => $order->completed_at?->toIsoString(),
+            'payment_paid_at' => $order->payment_paid_at?->toIsoString(),
+            'payment_expires_at' => $order->payment_expires_at?->toIsoString(),
+            'xendit_invoice_id' => $order->xendit_invoice_id,
+            'xendit_invoice_url' => $order->xendit_invoice_url,
+            'xendit_payment_method' => $order->xendit_payment_method,
+            'xendit_reference_id' => $order->xendit_reference_id,
+            'prgc_ref' => $this->buildPrgcRef($order),
+            'pickup_address' => $order->pickup_address,
+            'delivery_address' => $order->delivery_address,
         ]);
+
+        if ($synced) {
+            return true;
+        }
+
+        // Self-heal if Tracker missed the original create event and only received a later status update.
+        return $this->sendOrderCreated($order);
     }
 
     protected function postToTracker(string $path, array $payload): bool
@@ -82,5 +115,30 @@ class TrackerService
             'rejected' => 'cancelled',
             default => $status,
         };
+    }
+
+    protected function buildPrgcRef(Order $order): string
+    {
+        $pickup = $order->pickup_address ?? [];
+        $delivery = $order->delivery_address ?? [];
+
+        $pickupRef = collect([
+            $pickup['region_code'] ?? null,
+            $pickup['province_code'] ?? null,
+            $pickup['city_code'] ?? null,
+            $pickup['barangay_code'] ?? null,
+        ])->filter()->implode('-');
+
+        $deliveryRef = collect([
+            $delivery['region_code'] ?? null,
+            $delivery['province_code'] ?? null,
+            $delivery['city_code'] ?? null,
+            $delivery['barangay_code'] ?? null,
+        ])->filter()->implode('-');
+
+        return trim(implode('|', array_filter([
+            $pickupRef !== '' ? "PU:{$pickupRef}" : null,
+            $deliveryRef !== '' ? "DL:{$deliveryRef}" : null,
+        ])));
     }
 }

@@ -53,4 +53,33 @@ class AdminOrderController extends Controller
 
         return back()->with('success', 'Order status updated.');
     }
+
+    public function confirmPayment(Order $order)
+    {
+        $order->fill([
+            'payment_status' => 'paid',
+            'payment_paid_at' => now(),
+            'xendit_payment_method' => $order->xendit_payment_method ?: $order->payment_method,
+            'xendit_reference_id' => $order->xendit_reference_id ?: "storix-order-{$order->id}",
+        ]);
+        $order->save();
+
+        $this->trackerService->sendOrderStatus($order->fresh(['items.product', 'user']));
+
+        return back()->with('success', 'Payment confirmed and synced to Tracker.');
+    }
+
+    public function resyncTracker(Order $order)
+    {
+        $order->loadMissing('items.product', 'user');
+
+        $synced = $this->trackerService->sendOrderCreated($order);
+
+        return back()->with(
+            $synced ? 'success' : 'error',
+            $synced
+                ? 'Order data was resynced to Tracker successfully.'
+                : 'Tracker sync failed. Please make sure the Tracker app is running on http://127.0.0.1:8001.'
+        );
+    }
 }

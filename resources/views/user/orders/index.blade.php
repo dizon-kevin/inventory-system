@@ -339,7 +339,76 @@
         .act-track svg { animation: none; }
 
         /* ── PAGINATION ── */
-        .pagination-wrap { padding: .85rem 1.2rem; border-top: 1px solid var(--border); }
+        .pagination-wrap {
+            padding: 1rem 1.2rem;
+            border-top: 1px solid var(--border);
+            background: linear-gradient(180deg, rgba(250,252,250,0.88), rgba(255,255,255,0.96));
+        }
+
+        .table-meta {
+            font-size: .76rem;
+            color: var(--tm);
+            font-weight: 500;
+        }
+
+        .pagination-wrap nav { width: 100%; }
+        .pagination-wrap nav > div:first-child {
+            font-size: .76rem;
+            color: var(--tm);
+            margin-bottom: .75rem;
+        }
+
+        .pagination-wrap nav > div:last-child {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .pagination-wrap [aria-label="Pagination Navigation"] > div:last-child > span,
+        .pagination-wrap [aria-label="Pagination Navigation"] > div:last-child > a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 42px;
+            height: 42px;
+            padding: 0 .9rem;
+            margin-left: .4rem;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #fff;
+            color: var(--ts);
+            font-size: .78rem;
+            font-weight: 600;
+            text-decoration: none;
+            box-shadow: 0 8px 18px rgba(12,26,20,0.04);
+            transition: transform .15s, background .18s, color .18s, border-color .18s, box-shadow .18s;
+        }
+
+        .pagination-wrap [aria-label="Pagination Navigation"] svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .pagination-wrap [aria-label="Pagination Navigation"] a:hover {
+            background: #f8fcfa;
+            color: var(--tp);
+            border-color: rgba(0,212,170,0.18);
+            transform: translateY(-1px);
+            box-shadow: 0 12px 24px rgba(0,168,120,0.08);
+        }
+
+        .pagination-wrap [aria-current="page"] span {
+            background: #0a1a15;
+            color: #d8f0e8;
+            border-color: transparent;
+            box-shadow: 0 12px 22px rgba(0,168,120,0.18);
+        }
+
+        .pagination-wrap [aria-disabled="true"] span,
+        .pagination-wrap [aria-label="Pagination Navigation"] > div:last-child > span {
+            background: #f4f7f5;
+            color: rgba(12,26,20,.28);
+            box-shadow: none;
+        }
 
         /* ── EMPTY STATE ── */
         .empty-wrap {
@@ -386,6 +455,12 @@
             .content { padding: 1.2rem 1rem 2rem; }
             .user-name, .user-role-badge { display: none; }
             .summary-strip { grid-template-columns: repeat(2,1fr); }
+            .pagination-wrap { padding: .9rem 1rem; }
+            .pagination-wrap nav > div:last-child {
+                justify-content: flex-start;
+                overflow-x: auto;
+                padding-bottom: .2rem;
+            }
         }
         @include('admin-notifications-styles')
     </style>
@@ -577,7 +652,7 @@
                             </svg>
                         </div>
                         <div>
-                            <div class="scard-val">{{ $orders->where('status','cancelled')->count() }}</div>
+                            <div class="scard-val">{{ $orders->where('status','rejected')->count() }}</div>
                             <div class="scard-lbl">Cancelled</div>
                         </div>
                     </div>
@@ -590,6 +665,9 @@
                             <span class="title-dot"></span>
                             All Orders
                         </h3>
+                        <span class="table-meta">
+                            Showing {{ $orders->firstItem() }} to {{ $orders->lastItem() }} of {{ $orders->total() }} orders
+                        </span>
                     </div>
 
                     <div style="overflow-x:auto">
@@ -664,7 +742,7 @@
                     {{-- Pagination --}}
                     @if($orders->hasPages())
                         <div class="pagination-wrap">
-                            {{ $orders->links() }}
+                            {{ $orders->withQueryString()->links() }}
                         </div>
                     @endif
                 </div>
