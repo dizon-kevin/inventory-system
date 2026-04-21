@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Order;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -88,9 +89,22 @@ class TrackerService
 
         $url = $baseUrl . $path;
 
-        $response = Http::withToken(config('services.tracker.token'))
-            ->timeout(10)
-            ->post($url, $payload);
+        try {
+            $response = Http::withToken(config('services.tracker.token'))
+                ->timeout(10)
+                ->post($url, $payload);
+        } catch (ConnectionException $exception) {
+            try {
+                Log::warning('Tracker API connection failed', [
+                    'url' => $url,
+                    'message' => $exception->getMessage(),
+                ]);
+            } catch (Throwable) {
+                // Ignore logging failures so checkout can continue even when Tracker is down.
+            }
+
+            return false;
+        }
 
         if ($response->successful()) {
             return true;

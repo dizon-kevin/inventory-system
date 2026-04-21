@@ -66,6 +66,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
         Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+        Route::get('/orders/{order}/payment-return', [OrderController::class, 'paymentReturn'])->name('orders.payment-return');
+        Route::get('/orders/{order}/status-snapshot', [OrderController::class, 'statusSnapshot'])->name('orders.status-snapshot');
+        Route::post('/orders/{order}/confirm-payment', [OrderController::class, 'confirmPayment'])->name('orders.confirm-payment');
         Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
         Route::get('/orders/{order}/track', [OrderController::class, 'track'])->name('orders.track');
 
@@ -77,7 +80,6 @@ Route::middleware(['auth'])->group(function () {
     // Admin order routes
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
         Route::resource('orders', AdminOrderController::class)->only(['index', 'show', 'update']);
-        Route::patch('orders/{order}/confirm-payment', [AdminOrderController::class, 'confirmPayment'])->name('orders.confirm-payment');
         Route::post('orders/{order}/resync-tracker', [AdminOrderController::class, 'resyncTracker'])->name('orders.resync-tracker');
     });
 });

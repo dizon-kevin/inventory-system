@@ -39,6 +39,14 @@ class AdminOrderController extends Controller
             return back()->with('info', 'Order status did not change.');
         }
 
+        if (
+            $this->usesHostedXenditCheckout($order)
+            && in_array($data['status'], ['approved', 'completed'], true)
+            && $order->payment_status !== 'paid'
+        ) {
+            return back()->with('error', 'This order is waiting for Xendit payment confirmation. It will be approved automatically after a successful payment.');
+        }
+
         $order->status = $data['status'];
         if ($data['status'] === 'approved') {
             $order->approved_at = now();
@@ -54,21 +62,6 @@ class AdminOrderController extends Controller
         return back()->with('success', 'Order status updated.');
     }
 
-    public function confirmPayment(Order $order)
-    {
-        $order->fill([
-            'payment_status' => 'paid',
-            'payment_paid_at' => now(),
-            'xendit_payment_method' => $order->xendit_payment_method ?: $order->payment_method,
-            'xendit_reference_id' => $order->xendit_reference_id ?: "storix-order-{$order->id}",
-        ]);
-        $order->save();
-
-        $this->trackerService->sendOrderStatus($order->fresh(['items.product', 'user']));
-
-        return back()->with('success', 'Payment confirmed and synced to Tracker.');
-    }
-
     public function resyncTracker(Order $order)
     {
         $order->loadMissing('items.product', 'user');
@@ -81,5 +74,10 @@ class AdminOrderController extends Controller
                 ? 'Order data was resynced to Tracker successfully.'
                 : 'Tracker sync failed. Please make sure the Tracker app is running on http://127.0.0.1:8001.'
         );
+    }
+
+    protected function usesHostedXenditCheckout(Order $order): bool
+    {
+        return filled($order->xendit_invoice_url);
     }
 }

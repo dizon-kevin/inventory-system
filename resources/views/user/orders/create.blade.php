@@ -50,6 +50,7 @@
         .page-title { font-size: 1.45rem; font-weight: 700; letter-spacing: -.02em; }
         .page-subtitle { font-size: .82rem; color: var(--tm); margin-top: 2px; }
         .flash { padding: .9rem 1rem; border-radius: 12px; margin-bottom: 1rem; font-size: .82rem; font-weight: 500; }
+        .flash-info { background: rgba(59,130,246,.08); border: 1px solid rgba(59,130,246,.15); color: #1d4ed8; }
         .flash-error { background: rgba(220,38,38,.06); border: 1px solid rgba(220,38,38,.15); color: #b91c1c; }
         .checkout-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) 360px; gap: 1.25rem; align-items: start; }
         .stack { display: grid; gap: 1rem; }
@@ -70,16 +71,11 @@
         .field select:disabled { opacity: .6; cursor: wait; }
         .error-text { font-size: .73rem; color: var(--danger); }
         .address-note { font-size: .78rem; color: var(--tm); margin-bottom: .9rem; }
-        .payment-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
-        .payment-option { position: relative; }
-        .payment-option input { position: absolute; opacity: 0; pointer-events: none; }
-        .payment-label {
-            display: grid; gap: .3rem; padding: 1rem; border-radius: 14px; border: 1px solid var(--border); background: #fbfcfb;
-            cursor: pointer; min-height: 94px; transition: border-color .18s, transform .18s, box-shadow .18s;
-        }
-        .payment-option input:checked + .payment-label { border-color: rgba(0,168,120,.55); box-shadow: 0 10px 24px rgba(0,168,120,.12); transform: translateY(-1px); }
+        .payment-picker { display:grid; gap:.7rem; }
+        .payment-current { display:flex; justify-content:space-between; align-items:center; gap:.7rem; padding:.85rem .95rem; border:1px solid var(--border); border-radius:12px; background:#fbfcfb; }
         .payment-name { font-weight: 700; }
-        .payment-copy { font-size: .78rem; color: var(--tm); line-height: 1.45; }
+        .payment-copy { font-size: .76rem; color: var(--tm); line-height: 1.45; }
+        .payment-picker-btn { border:1px solid var(--border); background:#fff; color:var(--tp); border-radius:10px; padding:.72rem .9rem; font:inherit; font-size:.8rem; font-weight:700; cursor:pointer; }
         .item-list { display: grid; gap: .85rem; }
         .item-card { display: flex; align-items: center; justify-content: space-between; gap: .8rem; padding: .9rem 0; border-bottom: 1px solid var(--border); }
         .item-card:last-child { padding-bottom: 0; border-bottom: 0; }
@@ -101,9 +97,73 @@
         .btn-secondary { border: 1px solid var(--border); color: var(--ts); padding: .82rem 1rem; background: transparent; }
         .btn-primary.loading { pointer-events: none; opacity: .8; }
         .hint { font-size: .72rem; color: var(--tm); }
+        .notes-and-confirm { display: grid; grid-template-columns: minmax(0,1fr) 180px; gap: .7rem; align-items: end; }
+        .confirm-payment-btn {
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            background: #fff;
+            color: var(--tp);
+            font: inherit;
+            font-size: .82rem;
+            font-weight: 700;
+            height: 44px;
+            cursor: pointer;
+        }
+        .confirm-payment-btn.active {
+            background: #0a1a15;
+            color: #d8f0e8;
+            border-color: #0a1a15;
+        }
+        .confirm-payment-hint { font-size: .73rem; color: var(--tm); margin-top: .35rem; }
+        .method-modal { position: fixed; inset: 0; background: rgba(6,10,17,.55); display: none; align-items: center; justify-content: center; z-index: 1200; padding: 1rem; }
+        .method-modal.open { display: flex; }
+        .method-modal-card { width: min(560px, 100%); max-height: 80vh; overflow: hidden; background:#fff; border:1px solid var(--border); border-radius: 16px; display:grid; grid-template-rows:auto 1fr auto; }
+        .method-modal-head { padding: .95rem 1.1rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:.6rem; }
+        .method-modal-title { font-size:.9rem; font-weight:700; }
+        .method-modal-close { border:1px solid var(--border); background:#fff; border-radius:9px; padding:.4rem .6rem; font:inherit; font-size:.74rem; font-weight:700; cursor:pointer; }
+        .method-list { padding: .8rem 1rem; overflow:auto; display:grid; gap:.55rem; }
+        .method-item { border:1px solid var(--border); background:#fbfcfb; border-radius:12px; padding:.75rem .85rem; text-align:left; cursor:pointer; display:grid; gap:.2rem; }
+        .method-item.active { border-color: rgba(0,168,120,.55); box-shadow: 0 8px 20px rgba(0,168,120,.1); background:#fff; }
+        .method-modal-foot { padding:.85rem 1rem 1rem; border-top:1px solid var(--border); }
+        .method-modal-note { font-size:.74rem; color:var(--tm); }
+        .pay-modal { position: fixed; inset: 0; background: rgba(6,10,17,.58); display: none; align-items: flex-end; justify-content: center; z-index: 1300; padding: 0; }
+        .pay-modal.open { display: flex; }
+        .pay-modal-card { width: min(460px, 100%); background:#fff; border:1px solid var(--border); border-radius: 18px 18px 0 0; overflow:hidden; box-shadow: 0 -14px 44px rgba(6,10,17,.3); transform: translateY(14px); animation: paySheetIn .2s ease-out forwards; }
+        @keyframes paySheetIn { to { transform: translateY(0); } }
+        .pay-modal-head { padding: .95rem 1rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:.6rem; background: linear-gradient(180deg, #031a4a 0%, #082868 100%); color:#fff; }
+        .pay-brand { font-size:.95rem; font-weight:700; }
+        .pay-chip { font-size:.65rem; letter-spacing:.08em; text-transform:uppercase; padding:.24rem .5rem; border-radius:999px; background:rgba(0,168,120,.12); color:#047857; font-weight:700; }
+        .pay-close { border:0; background:transparent; color:#fff; font:inherit; font-size:1.05rem; font-weight:700; cursor:pointer; line-height:1; }
+        .pay-progress { height: 4px; background: rgba(6,10,17,.08); }
+        .pay-progress-bar { height: 100%; width: 62%; background: linear-gradient(90deg, #00d4aa 0%, #0ea5e9 100%); }
+        .pay-modal-body { padding: 0; display:grid; gap:0; max-height: 62vh; overflow:auto; }
+        .gateway-summary { padding: .85rem 1rem .9rem; border-bottom:1px solid var(--border); display:grid; gap:.28rem; }
+        .gateway-summary-top { display:flex; justify-content:space-between; align-items:center; font-size:.77rem; color:var(--tm); }
+        .gateway-total { font-family:'Space Mono', monospace; font-size:1.5rem; font-weight:700; color:var(--tp); }
+        .gateway-sub { display:flex; justify-content:space-between; align-items:center; font-size:.74rem; color:var(--tm); }
+        .gateway-sub button { border:0; background:transparent; color:#1d4ed8; font:inherit; font-size:.74rem; cursor:pointer; }
+        .gateway-block { padding:.85rem 1rem; border-bottom:1px solid var(--border); display:grid; gap:.58rem; }
+        .gateway-label { font-size:.8rem; color:var(--tm); font-weight:600; }
+        .gateway-item { border:1px solid var(--border); border-radius:12px; background:#fff; padding:.7rem .8rem; display:flex; justify-content:space-between; align-items:center; gap:.7rem; }
+        .gateway-item.active { border-color: rgba(37,99,235,.45); box-shadow: 0 8px 18px rgba(37,99,235,.12); }
+        .gateway-item-main { display:grid; gap:.22rem; }
+        .gateway-item-title { font-size:.95rem; font-weight:700; color:var(--tp); }
+        .gateway-item-icons { display:flex; align-items:center; gap:.32rem; font-size:.66rem; color:#475569; }
+        .gateway-pill { border:1px solid var(--border); border-radius:999px; padding:.16rem .42rem; background:#f8fafc; }
+        .gateway-arrow { font-size:1.05rem; color:#334155; }
+        .gateway-qr { padding: .2rem 1rem .95rem; display:grid; gap:.45rem; justify-items:center; }
+        .gateway-qr-label { font-size:.74rem; color:var(--tm); }
+        .gateway-qr-wrap { width: 180px; height: 180px; border:1px solid var(--border); border-radius:12px; background:#fbfcfb; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+        .gateway-qr-wrap img { width:100%; height:100%; object-fit:cover; }
+        .pay-modal-foot { padding: 0 1rem 1rem; display:grid; grid-template-columns:1fr 1fr; gap:.6rem; }
+        .pay-modal-btn { border-radius: 10px; padding: .75rem .8rem; font: inherit; font-size:.8rem; font-weight:700; cursor:pointer; }
+        .pay-modal-btn-confirm { border:0; background:#0a1a15; color:#d8f0e8; }
+        .pay-modal-btn-cancel { border:1px solid var(--border); background:#fff; color:var(--tp); }
+        .pay-powered { font-size:.68rem; color:var(--tm); text-align:center; padding-bottom: .95rem; }
+        @media (min-width: 720px) { .pay-modal { align-items: center; padding: 1rem; } .pay-modal-card { border-radius: 18px; } }
         @media (max-width: 1080px) { .checkout-grid { grid-template-columns: 1fr; } .summary-card { position: static; } }
         @media (max-width: 900px) { .main { margin-left: 0; } .sidebar { display: none; } .content { padding: 1.2rem 1rem 2rem; } }
-        @media (max-width: 640px) { .address-grid, .payment-options { grid-template-columns: 1fr; } }
+        @media (max-width: 640px) { .address-grid, .notes-and-confirm { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -143,7 +203,7 @@
             <div class="page-header">
                 <p class="page-eyebrow">Checkout Flow</p>
                 <h1 class="page-title">Pickup, Delivery, and Payment</h1>
-                <p class="page-subtitle">Fill out both addresses, choose a Xendit payment method, then continue to the hosted payment page.</p>
+                <p class="page-subtitle">Fill out both addresses, place the order, and continue to the official Xendit hosted checkout where cards, wallets, QR, and other enabled payment methods are handled securely.</p>
             </div>
 
             @if ($errors->any())
@@ -157,8 +217,22 @@
                 </div>
             @endif
 
+            @if(! $xenditConfigured)
+                <div class="flash flash-info">
+                    <strong>Temporary Manual Confirmation Mode</strong>
+                    <div style="margin-top:.35rem;">
+                        @if(($xenditConfigIssue ?? null) === 'public_key_only')
+                            Xendit public key detected. Use <strong>XENDIT_SECRET_KEY</strong> in `.env` for real hosted checkout and webhook flow.
+                        @else
+                        Xendit API key is not configured. Set <strong>XENDIT_SECRET_KEY</strong> to enable real hosted checkout and real QR/payment channels.
+                        @endif
+                    </div>
+                </div>
+            @endif
+
             <form action="{{ route('user.orders.store') }}" method="POST" id="checkoutForm">
                 @csrf
+                <input type="hidden" name="payment_method" id="paymentMethodInput" value="XENDIT">
 
                 <div class="checkout-grid">
                     <div class="stack">
@@ -190,24 +264,13 @@
                                 <span class="hint">Hosted checkout after order creation</span>
                             </div>
                             <div class="card-body">
-                                <div class="payment-options">
-                                    @foreach($paymentMethods as $value => $label)
-                                        <label class="payment-option">
-                                            <input type="radio" name="payment_method" value="{{ $value }}" {{ old('payment_method', 'ANY') === $value ? 'checked' : '' }}>
-                                            <span class="payment-label">
-                                                <span class="payment-name">{{ $label }}</span>
-                                                <span class="payment-copy">
-                                                    @if($value === 'ANY')
-                                                        Show all available Xendit channels for the user on the hosted payment page.
-                                                    @elseif($value === 'OTC')
-                                                        Limit the payment page to over-the-counter channels like 7-Eleven and payment centers.
-                                                    @else
-                                                        Prioritize the selected Xendit payment channel during checkout.
-                                                    @endif
-                                                </span>
-                                            </span>
-                                        </label>
-                                    @endforeach
+                                <div class="payment-picker">
+                                    <div class="payment-current">
+                                        <div>
+                                            <div class="payment-name">Xendit Hosted Checkout</div>
+                                            <div class="payment-copy">After you place the order, Storix will redirect you to the official Xendit hosted checkout page where all enabled methods are shown directly.</div>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div class="field full" style="margin-top:1rem;">
@@ -251,9 +314,9 @@
                                 <strong>PHP {{ number_format($total, 2) }}</strong>
                             </div>
                             <div class="summary-note">
-                                After placing the order, Storix creates a Xendit invoice, saves payment and address data, then syncs the order snapshot to the Tracker system.
+                                After placing the order, Storix will redirect you to Xendit hosted checkout for the actual payment step. The order page will stay linked to the same Xendit invoice for retries and status refresh.
                             </div>
-                            <button type="submit" class="btn-primary" id="placeOrderButton">Place Order and Continue to Payment</button>
+                            <button type="submit" class="btn-primary" id="placeOrderButton">Place Order and Pay with Xendit</button>
                             <a href="{{ route('user.cart.index') }}" class="btn-secondary">Back to Cart</a>
                         </div>
                     </aside>
@@ -299,7 +362,7 @@
     };
 
     const syncHiddenName = (select, hiddenInput) => {
-        if (! hiddenInput) {
+        if (!hiddenInput) {
             return;
         }
 
@@ -329,7 +392,7 @@
                 },
             });
 
-            if (! response.ok) {
+            if (!response.ok) {
                 throw new Error(`Request failed with status ${response.status}`);
             }
 
@@ -357,7 +420,7 @@
         const loadBarangays = async (selectedCode = barangaySelect.dataset.selectedCode || '') => {
             resetBarangay();
 
-            if (! citySelect.value) {
+            if (!citySelect.value) {
                 return;
             }
 
@@ -378,7 +441,7 @@
             resetCity();
             resetBarangay();
 
-            if (! regionSelect.value) {
+            if (!regionSelect.value) {
                 return;
             }
 
@@ -410,7 +473,7 @@
             resetCity();
             resetBarangay();
 
-            if (! regionSelect.value) {
+            if (!regionSelect.value) {
                 return;
             }
 
@@ -424,7 +487,6 @@
                     setOptions(provinceSelect, [], 'No province required');
                     syncHiddenName(provinceSelect, provinceNameInput);
                     await loadCities();
-
                     return;
                 }
 

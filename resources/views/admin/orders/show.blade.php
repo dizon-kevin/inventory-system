@@ -51,6 +51,7 @@
         .btn-secondary { border:1px solid var(--border); background:#fff; color:var(--text); }
         .flash { margin-bottom:1rem; padding:.9rem 1rem; border-radius:12px; font-size:.82rem; font-weight:600; }
         .flash-success { background:rgba(0,168,120,.1); color:#047857; border:1px solid rgba(0,168,120,.15); }
+        .flash-info { background:rgba(59,130,246,.08); color:#1d4ed8; border:1px solid rgba(59,130,246,.14); }
         .flash-error { background:rgba(220,38,38,.08); color:#b91c1c; border:1px solid rgba(220,38,38,.12); }
         @media (max-width:980px) { .grid { grid-template-columns:1fr; } .sidebar-card { position:static; } }
         @media (max-width:640px) { .detail-grid { grid-template-columns:1fr; } }
@@ -149,13 +150,11 @@
                     </form>
 
                     <div style="display:grid;gap:.7rem;margin-top:1rem;">
-                        @if($order->payment_status !== 'paid')
-                            <form action="{{ route('admin.orders.confirm-payment', $order) }}" method="POST">
-                                @csrf
-                                @method('PATCH')
-                                <button type="submit" class="btn btn-primary">Confirm Payment</button>
-                            </form>
-                        @endif
+                        <div class="flash {{ $order->payment_status === 'paid' ? 'flash-success' : 'flash-info' }}" style="margin-bottom:0;">
+                            {{ $order->payment_status === 'paid'
+                                ? 'Payment was confirmed through Xendit by the customer and already synced.'
+                                : 'Payment confirmation is handled in customer Xendit checkout. Admin can still update order status after payment is confirmed.' }}
+                        </div>
                         <form action="{{ route('admin.orders.resync-tracker', $order) }}" method="POST">
                             @csrf
                             <button type="submit" class="btn btn-secondary">Resync to Tracker</button>
